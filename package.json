@@ -9,14 +9,19 @@
     "build": "wxt build",
     "zip": "wxt zip",
     "typecheck": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "prepare": "husky"
   },
   "dependencies": {
     "edge-tts-universal": "^1.4.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@happy-dom/global-registrator": "^20.14.5",
     "@types/bun": "^1.4.2",
     "@types/chrome": "^0.3.4",
+    "husky": "^9.1.7",
     "typescript": "^7.0.2",
     "wxt": "^0.21.4"
   }

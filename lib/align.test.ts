@@ -33,14 +33,13 @@ test("wordAt picks the word in progress", () => {
   expect(wordAt(words, 99)).toBe(2);
 });
 
-test("sentence spans cover the text, trimmed, with short ones merged", async () => {
-  const { splitSentences } = await import("./extract");
-  const seg = new Intl.Segmenter("en", { granularity: "sentence" });
-  const text = "  Hi. This is the first real sentence of the block, long enough. And here is a second one that is long too.  — ";
-  const spans = splitSentences(text, seg).map((s) => text.slice(s.from, s.to));
-  expect(spans).toEqual([
-    "Hi. This is the first real sentence of the block, long enough.",
-    "And here is a second one that is long too.  —",
-  ]);
-  expect(splitSentences(" — … ", seg)).toEqual([]);
+test("matching is case-insensitive and tolerates an empty boundary list", () => {
+  expect(align("Hello World", ["hello", "WORLD"].map(b)).map((w) => w.from)).toEqual([0, 6]);
+  expect(align("anything", [])).toEqual([]);
+  expect(wordAt([], 3)).toBe(-1);
+});
+
+test("times convert from 100 ns units to seconds", () => {
+  const [w] = align("hi", [{ text: "hi", offset: 12_500_000, duration: 2_500_000 }]);
+  expect(w).toMatchObject({ start: 1.25, end: 1.5 });
 });

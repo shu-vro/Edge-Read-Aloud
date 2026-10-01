@@ -1,0 +1,14 @@
+# Every test on a normal push; none on a force push or a branch deletion.
+# git feeds one line per ref on stdin: <local ref> <local sha> <remote ref> <remote sha>
+zero=0000000000000000000000000000000000000000
+run=0
+while read -r _ local_sha _ remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue # deleting a branch
+  if [ "$remote_sha" != "$zero" ] && ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+    echo "force push detected: skipping tests"
+    continue
+  fi
+  run=1
+done
+[ "$run" = 1 ] || exit 0
+bun test

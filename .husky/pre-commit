@@ -1,0 +1,2 @@
+# Only tests affected by the staged changes. Falls through when none are.
+bun test --changed
