@@ -18,7 +18,7 @@ bun run build       # production build -> .output/chrome-mv3
 bun run dev         # watch mode, opens a browser
 bun run zip         # build and zip -> .output/*-chrome.zip
 bun run typecheck   # tsc --noEmit
-bun test            # lib/align.test.ts
+bun test            # lib/*.test.ts
 ```
 
 Run `bun run typecheck` and `bun test` before calling a change done. For anything that affects
@@ -117,7 +117,12 @@ problem first.
 
 ## Testing
 
-Unit tests cover alignment and sentence splitting only. Everything else needs a browser.
+Unit tests (`lib/*.test.ts`) cover alignment, sentence extraction against a happy-dom page,
+the speech WebSocket client against a fake socket, voices and settings. The extension APIs and
+`edge-tts-universal` are faked in `test/fakes.ts`, preloaded by `bunfig.toml` (bun's `mock.module`
+is process-wide, so mocks live in one place). happy-dom does not know the `hidden` attribute and
+reports no `display` for inline elements, so tests set `style="display:inline"` where it matters.
+The content script, offscreen player and popup have no unit tests: they need a browser.
 
 Load the build into a throwaway profile, never the user's own:
 
@@ -144,6 +149,13 @@ Then drive it over the DevTools protocol on port 9333:
 
 Space test runs out. Repeated runs in quick succession trigger the service's throttling and
 make latency numbers meaningless for a while.
+
+## Git hooks
+
+Husky installs them on `bun install`. Commit messages must be conventional commits
+(`feat:`, `fix:`, `chore:`, `docs:`, `test:` ...), enforced by commitlint in `commit-msg`.
+`pre-commit` runs `bun test --changed` (only test files affected by the change); `pre-push` runs
+every test, and is skipped for force pushes and branch deletions.
 
 ## Releases
 
