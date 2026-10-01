@@ -1,0 +1,66 @@
+name: Release
+
+# Every push to the `release` branch publishes a new GitHub release with an installable zip.
+# Versions start at v1.0.0 and the patch number goes up by one each time.
+
+on:
+  push:
+    branches: [release]
+
+permissions:
+  contents: write
+
+# Two pushes in quick succession must not compute the same version.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # all tags, to find the previous version
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Check
+        run: |
+          bun run typecheck
+          bun test
+
+      - name: Next version
+        id: version
+        run: |
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n 1)
+          if [ -z "$latest" ]; then
+            next=1.0.0
+          else
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            next="$major.$minor.$((patch + 1))"
+          fi
+          echo "Previous: ${latest:-none}, next: v$next"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # The extension's manifest version comes from package.json.
+          npm pkg set version="$VERSION"
+          bun run zip
+          mv .output/*-chrome.zip "edge-read-aloud-v$VERSION.zip"
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" "edge-read-aloud-v$VERSION.zip" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --generate-notes \
+            --notes "**Install:** download \`edge-read-aloud-v$VERSION.zip\` below, open \`chrome://extensions\` (or \`brave://extensions\`, \`edge://extensions\`), turn on **Developer mode**, and drag the zip onto the page. Details in the README."
