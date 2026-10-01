@@ -1,0 +1,141 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f4f4f6;
+  --card: #fff;
+  --line: #0000001a;
+  --text: #17171a;
+  --muted: #6b6b76;
+  --accent: #f5c400;
+  --on-accent: #17171a;
+  --hover: #0000000d;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131316;
+    --card: #1d1d22;
+    --line: #ffffff1a;
+    --text: #f2f2f5;
+    --muted: #9a9aa6;
+    --accent: #ffd60a;
+    --hover: #ffffff14;
+  }
+}
+
+* { box-sizing: border-box; }
+body { width: 340px; margin: 0; padding: 14px; background: var(--bg); color: var(--text);
+  font: 13px/1.4 system-ui, sans-serif; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+svg { width: 20px; height: 20px; fill: currentColor; display: block; }
+
+header { display: flex; align-items: center; justify-content: space-between; }
+h1 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+.state { padding: 2px 9px; border-radius: 999px; background: var(--hover); color: var(--muted); font-size: 11.5px;
+  transition: background .3s, color .3s; }
+.state.on { background: var(--accent); color: var(--on-accent); }
+
+.transport { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 14px 0 12px; }
+.round { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--card); border: 1px solid var(--line);
+  transition: transform .2s var(--ease), background .2s, box-shadow .2s; }
+.round:hover { background: var(--hover); transform: translateY(-1px) scale(1.05); }
+.round:active { transform: scale(.92); transition-duration: .08s; }
+.round.play { width: 56px; height: 56px; background: var(--accent); color: var(--on-accent); border: 0;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.round.play:hover { background: var(--accent); }
+/* Both icons share the cell and trade places with a turn. */
+.round.play svg { grid-area: 1 / 1; width: 28px; height: 28px; transition: opacity .2s, transform .35s var(--ease); }
+.play .icon-pause, .play.playing .icon-play { opacity: 0; transform: scale(.4) rotate(-90deg); }
+.play.playing .icon-play { transform: scale(.4) rotate(90deg); }
+.play.playing .icon-pause { opacity: 1; transform: none; }
+.play.playing { animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  to { box-shadow: 0 0 0 16px transparent; }
+}
+
+#note { animation: rise .3s var(--ease); margin: 0 0 10px; padding: 8px 10px; border-radius: 8px; background: #d32f2f22; color: #e57373; }
+
+/* Everything settles into place when the popup opens, top to bottom. */
+header, section, footer { animation: rise .45s var(--ease) backwards; }
+section:nth-of-type(1) { animation-delay: 40ms; }
+section:nth-of-type(2) { animation-delay: 80ms; }
+section:nth-of-type(3) { animation-delay: 120ms; }
+section:nth-of-type(4) { animation-delay: 160ms; }
+footer { animation-delay: 200ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 10px; }
+
+.voice-current { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+.avatar { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 15px; }
+.voice-text { flex: 1; min-width: 0; }
+.voice-text b, .voice-text small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.voice-text small { color: var(--muted); }
+.avatar { transition: transform .3s var(--ease); }
+.voice-current:hover .avatar { transform: scale(1.08) rotate(-6deg); }
+.chevron { color: var(--muted); transition: transform .35s var(--ease); }
+
+/* Height animates through a 0fr -> 1fr grid row; the panel itself is never display:none. */
+#voice-panel { display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows .35s var(--ease), opacity .25s; }
+#voice-panel.open { grid-template-rows: 1fr; opacity: 1; }
+#voice-panel > div { min-height: 0; overflow: hidden; padding: 0 6px; margin: 0 -6px; }
+[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
+#search { width: 100%; margin: 12px 0 8px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: inherit; font: inherit; transition: border-color .2s, box-shadow .2s; }
+#search:focus { outline: 0; border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+#search::placeholder { color: var(--muted); }
+#voice-list { max-height: 200px; overflow-y: auto; margin: 0 -6px -4px; scrollbar-width: thin;
+  scroll-behavior: smooth; }
+.group { position: sticky; top: 0; padding: 6px 6px 4px; background: var(--card); color: var(--muted);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.voice { display: block; width: 100%; padding: 6px; border-radius: 8px; text-align: left;
+  transition: background .2s, transform .2s var(--ease); }
+.voice:hover { background: var(--hover); transform: translateX(3px); }
+.voice:active { transform: scale(.98); }
+.voice[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.voice small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tag { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--hover); color: var(--muted);
+  font-size: 10.5px; font-weight: 500; }
+.empty { padding: 14px 6px; color: var(--muted); text-align: center; }
+
+.slider { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; }
+.slider + .slider { margin-top: 12px; }
+.slider label { font-weight: 600; }
+.slider output { color: var(--muted); font-variant-numeric: tabular-nums; }
+.slider input, .chips { grid-column: 1 / -1; }
+input[type="range"] { width: 100%; margin: 2px 0; accent-color: var(--accent); }
+.chips { display: flex; gap: 6px; }
+.chips button { flex: 1; padding: 3px 0; border-radius: 999px; border: 1px solid var(--line); font-size: 12px;
+  font-variant-numeric: tabular-nums; transition: background .25s, color .25s, border-color .25s, transform .2s var(--ease); }
+.chips button:hover { background: var(--hover); transform: translateY(-1px); }
+.chips button:active { transform: scale(.94); }
+.chips button.on { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+.link { display: block; margin: 10px auto 0; color: var(--muted); font-size: 12px; text-decoration: underline; }
+.link { transition: color .2s; }
+.link:hover { color: var(--text); }
+
+.switches label { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.switches label + label { margin-top: 10px; }
+input[role="switch"] { appearance: none; flex: none; width: 34px; height: 20px; margin: 0; border-radius: 999px;
+  background: var(--line); position: relative; cursor: pointer; transition: background .3s; }
+input[role="switch"]::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+  border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #0005;
+  transition: translate .3s var(--ease), width .2s var(--ease); }
+/* The knob stretches while pressed, then snaps across. */
+input[role="switch"]:active::after { width: 20px; }
+input[role="switch"]:checked:active::after { translate: 10px; }
+input[role="switch"]:checked { background: var(--accent); }
+input[role="switch"]:checked::after { translate: 14px; }
+
+footer { margin-top: 12px; color: var(--muted); font-size: 11.5px; text-align: center; }
+kbd { padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

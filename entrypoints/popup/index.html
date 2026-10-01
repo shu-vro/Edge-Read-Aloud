@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Edge Read Aloud</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Read Aloud</h1>
+      <span id="state" class="state">Ready</span>
+    </header>
+
+    <section class="transport">
+      <button id="prev" class="round" title="Previous sentence" aria-label="Previous sentence">
+        <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z" /></svg>
+      </button>
+      <button id="toggle" class="round play" title="Read this page" aria-label="Read this page">
+        <svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z" /></svg>
+      </button>
+      <button id="next" class="round" title="Next sentence" aria-label="Next sentence">
+        <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z" /></svg>
+      </button>
+      <button id="stop" class="round" title="Stop reading" aria-label="Stop reading">
+        <svg viewBox="0 0 24 24"><path d="M7 7h10v10H7z" /></svg>
+      </button>
+    </section>
+    <p id="note" hidden></p>
+
+    <section class="card">
+      <button id="voice-current" class="voice-current" aria-expanded="false" aria-controls="voice-panel">
+        <span id="voice-avatar" class="avatar"></span>
+        <span class="voice-text">
+          <b id="voice-name">Loading voices…</b>
+          <small id="voice-detail"></small>
+        </span>
+        <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+      </button>
+      <div id="voice-panel" inert>
+        <div>
+          <input id="search" type="search" placeholder="Search language, name, style…" aria-label="Search voices" />
+          <div id="voice-list" role="listbox" aria-label="Voices"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="slider">
+        <label for="rate">Speed</label>
+        <output id="rate-out"></output>
+        <input id="rate" type="range" min="-50" max="100" step="5" />
+        <div id="presets" class="chips"></div>
+      </div>
+      <div class="slider">
+        <label for="pitch">Pitch</label>
+        <output id="pitch-out"></output>
+        <input id="pitch" type="range" min="-50" max="50" step="5" />
+      </div>
+      <div class="slider">
+        <label for="volume">Volume</label>
+        <output id="volume-out"></output>
+        <input id="volume" type="range" min="-50" max="50" step="5" />
+      </div>
+      <button id="reset" class="link">Reset to defaults</button>
+    </section>
+
+    <section class="card switches">
+      <label>Highlight each word <input id="wordHighlight" type="checkbox" role="switch" /></label>
+      <label>Scroll along while reading <input id="autoScroll" type="checkbox" role="switch" /></label>
+      <label>Click text to read from there <input id="clickToRead" type="checkbox" role="switch" /></label>
+    </section>
+
+    <footer><kbd>Alt</kbd>+<kbd>R</kbd> play / pause · right-click text → “Read aloud from here”</footer>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

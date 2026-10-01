@@ -1,0 +1,23 @@
+{
+  "name": "shirshen-tts-ext",
+  "description": "Read any web page aloud with Microsoft Edge neural voices, with live highlighting.",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "edge-tts-universal": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/chrome": "^0.3.4",
+    "typescript": "^7.0.2",
+    "wxt": "^0.21.4"
+  }
+}

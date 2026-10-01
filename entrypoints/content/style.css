@@ -1,0 +1,10 @@
+::highlight(edge-tts-hover) {
+  background-color: rgba(255, 214, 10, 0.16);
+}
+::highlight(edge-tts-sentence) {
+  background-color: rgba(255, 214, 10, 0.3);
+}
+::highlight(edge-tts-word) {
+  background-color: #ffd60a;
+  color: #111;
+}
