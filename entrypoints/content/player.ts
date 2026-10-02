@@ -6,6 +6,11 @@ div { display: flex; align-items: center; gap: 2px; padding: 6px 8px; border-rad
   background: #1c1c1e; color: #fff; font: 13px/1 system-ui, sans-serif;
   box-shadow: 0 4px 18px rgba(0, 0, 0, .35);
   transition: opacity .25s, transform .4s cubic-bezier(.2, .8, .2, 1); }
+div { user-select: none; }
+div.drag { transition: none; }
+span.handle { min-width: 0; width: 16px; height: 12px; padding: 8px 2px; margin-right: 2px; cursor: grab; touch-action: none;
+  background: repeating-linear-gradient(rgba(255, 255, 255, .5) 0 2px, transparent 2px 5px) content-box; }
+div.drag span.handle { cursor: grabbing; }
 /* Slides up when added to the page, and back down before it is removed. */
 @starting-style { div { opacity: 0; transform: translateY(20px) scale(.94); } }
 :host(.out) div { opacity: 0; transform: translateY(20px) scale(.94); }
@@ -66,6 +71,10 @@ export function createPlayer(actions: PlayerActions) {
     return s;
   };
 
+  const handle = document.createElement("span");
+  handle.className = "handle";
+  handle.title = "Drag to move";
+  bar.append(handle);
   const jump = button("↕ Go to reading", "Scroll to the sentence being read", actions.reveal);
   jump.className = "jump";
   jump.inert = true;
@@ -79,6 +88,51 @@ export function createPlayer(actions: PlayerActions) {
   const error = text("error");
   button("✕", "Stop reading", actions.stop);
   shadow.append(bar);
+
+  // Drag the bar by its handle; on release it snaps to the nearest screen corner.
+  // ponytail: corner is kept per page load, not remembered across pages.
+  let right = true;
+  let bottom = true;
+  const anchor = () => {
+    const s = host.style;
+    s.left = right ? "auto" : "16px";
+    s.right = right ? "16px" : "auto";
+    s.top = bottom ? "auto" : "16px";
+    s.bottom = bottom ? "16px" : "auto";
+  };
+  let drag: { dx: number; dy: number } | undefined;
+  handle.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const r = bar.getBoundingClientRect();
+    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    handle.setPointerCapture(e.pointerId);
+    bar.classList.add("drag");
+  });
+  handle.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const s = host.style;
+    s.right = s.bottom = "auto";
+    s.left = `${e.clientX - drag.dx}px`;
+    s.top = `${e.clientY - drag.dy}px`;
+  });
+  const drop = () => {
+    if (!drag) return;
+    drag = undefined;
+    bar.classList.remove("drag");
+    const from = bar.getBoundingClientRect();
+    right = from.left + from.width / 2 > innerWidth / 2;
+    bottom = from.top + from.height / 2 > innerHeight / 2;
+    anchor();
+    const to = bar.getBoundingClientRect();
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      bar.animate(
+        [{ transform: `translate(${from.left - to.left}px, ${from.top - to.top}px)` }, { transform: "none" }],
+        { duration: 350, easing: "cubic-bezier(.2, .8, .2, 1)" },
+      );
+    }
+  };
+  handle.addEventListener("pointerup", drop);
+  handle.addEventListener("pointercancel", drop);
 
   let leaving: ReturnType<typeof setTimeout> | undefined;
   let wasPlaying = false;
