@@ -47,7 +47,9 @@ expected for anything installed outside the store.
 | Get back to the sentence being read | **Go to reading** in the player, shown when you have scrolled away |
 | Stop | ✕ in the player, or the stop button in the popup |
 
-Reading starts at your text selection if there is one, otherwise at the first sentence on screen.
+With text selected, it reads just the selection. Otherwise it starts at the text you last tapped, if
+it is still on screen, or else at the first sentence on screen. Tapping works outside the main
+content too, for example in a chat sidebar.
 
 The popup also has switches for word highlighting, scrolling along with the reading, and
 click-to-read. If <kbd>Alt</kbd>+<kbd>R</kbd> is taken by something else, set another shortcut at

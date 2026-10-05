@@ -159,16 +159,17 @@ export default defineContentScript({
       post({ t: "load", texts: sentences.map((s) => s.text), index, settings });
     }
 
-    function start(pick: () => number) {
-      if (!sentences.length) sentences = extract();
+    /** Re-reads the page every time: it may have changed (a chat answer arrived) since the last start. */
+    function start(from: Range | undefined) {
+      sentences = extract(from);
       if (!sentences.length) return;
       player.show();
-      const i = pick();
+      const i = from?.collapsed ? locate(sentences, from.startContainer, from.startOffset) : from ? 0 : -1;
       play(i >= 0 ? i : firstVisible());
     }
 
     function toggle() {
-      if (!sentences.length) return start(fromSelection);
+      if (!sentences.length) return start(pointed());
       if (!port) return void play(index);
       playing = !playing;
       post({ t: playing ? "resume" : "pause" });
@@ -193,22 +194,29 @@ export default defineContentScript({
     const firstVisible = () =>
       Math.max(0, sentences.findIndex((s) => rangeOf(s).getBoundingClientRect().bottom > 0));
 
-    function fromSelection(): number {
+    /**
+     * What the user selected, or the caret a tap on text left behind. A caret that has since
+     * scrolled out of view is stale, so reading starts on screen instead.
+     */
+    function pointed(): Range | undefined {
       const selection = getSelection();
-      if (!selection || selection.isCollapsed) return -1;
+      if (!selection?.rangeCount) return;
       const range = selection.getRangeAt(0);
-      return locate(sentences, range.startContainer, range.startOffset);
+      return !range.collapsed || onScreen(range) ? range : undefined;
+    }
+
+    function caretAt(x: number, y: number): Range | undefined {
+      const caret = document.caretPositionFromPoint?.(x, y);
+      if (!caret) return document.caretRangeFromPoint(x, y) ?? undefined;
+      const range = document.createRange();
+      range.setStart(caret.offsetNode, caret.offset);
+      return range;
     }
 
     /** The sentence under a viewport point, or -1 when the point is not on its text. */
     function sentenceAtPoint(x: number, y: number): number {
-      const caret = document.caretPositionFromPoint?.(x, y);
-      const legacy = caret ? null : document.caretRangeFromPoint(x, y);
-      const i = locate(
-        sentences,
-        caret?.offsetNode ?? legacy?.startContainer,
-        caret?.offset ?? legacy?.startOffset ?? 0,
-      );
+      const caret = caretAt(x, y);
+      const i = locate(sentences, caret?.startContainer, caret?.startOffset ?? 0);
       if (i < 0) return -1;
       // The caret snaps to the nearest text even from empty space, so check the pointer is on it.
       const hit = [...rangeOf(sentences[i]).getClientRects()].some(
@@ -291,11 +299,7 @@ export default defineContentScript({
           play(index + 1);
           break;
         case "here":
-          sentences = []; // re-read the page: it may have changed since the last start
-          start(() => {
-            const i = sentenceAtPoint(menuPoint.x, menuPoint.y);
-            return i >= 0 ? i : fromSelection();
-          });
+          start(caretAt(menuPoint.x, menuPoint.y) ?? pointed());
           break;
       }
       respond({ active: sentences.length > 0, playing } satisfies Status);

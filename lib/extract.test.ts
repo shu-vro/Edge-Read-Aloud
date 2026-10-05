@@ -69,3 +69,22 @@ test("locate finds the sentence under a DOM position", () => {
   expect(locate(s, document.body, 0)).toBe(-1);
   expect(locate(s, null, 0)).toBe(-1);
 });
+
+test("extract: a selection reads only the sentences it touches, even in skipped regions", () => {
+  document.body.innerHTML = `<main><p>${LONG_A} ${LONG_B}</p></main><aside><p id="x">${LONG_B} ${LONG_A}</p></aside>`;
+  const node = document.querySelector("#x")!.firstChild!;
+  const range = document.createRange();
+  range.setStart(node, 5);
+  range.setEnd(node, 10);
+  expect(extract(range).map((x) => x.text)).toEqual([LONG_B]);
+});
+
+test("extract: a caret outside <main> reads the region around it", () => {
+  document.body.innerHTML = `<main><p>${LONG_A}</p></main><div id="chat"><p>${LONG_B}</p><p>${LONG_A}</p></div>`;
+  const range = document.createRange();
+  range.setStart(document.querySelector("#chat p")!.firstChild!, 3);
+  expect(extract(range).map((x) => x.text)).toEqual([LONG_B, LONG_A]);
+  range.setStart(document.querySelector("main p")!.firstChild!, 3);
+  range.collapse(true); // moving only the start back would select from main to the chat
+  expect(extract(range).map((x) => x.text)).toEqual([LONG_A]);
+});

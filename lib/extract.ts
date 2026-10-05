@@ -50,7 +50,10 @@ function collectBlocks(root: Element): Block[] {
     if (!parent) continue;
     let blockEl = parents.get(parent);
     if (blockEl === undefined) {
-      blockEl = parent.closest(SKIP) || !parent.checkVisibility() ? null : blockOf(parent);
+      // Only skip inside the root: text the user picked in, say, an <aside> is still read.
+      const skip = parent.closest(SKIP);
+      const skipped = skip && skip !== root && root.contains(skip);
+      blockEl = skipped || !parent.checkVisibility() ? null : blockOf(parent);
       parents.set(parent, blockEl);
     }
     if (!blockEl) continue;
@@ -94,9 +97,25 @@ export function splitSentences(text: string, seg: Intl.Segmenter): { from: numbe
   return spans;
 }
 
-export function extract(): Sentence[] {
+/**
+ * The sentences to read. `from` is where the user pointed: a selection reads only the sentences
+ * it touches; a caret (a tap on text) reads the region around it, which may lie outside the
+ * main content, such as a chat sidebar next to `<main>`.
+ */
+export function extract(from?: Range): Sentence[] {
+  const main = readingRoot();
+  let root = main;
+  if (from) {
+    const at = from.commonAncestorContainer;
+    root = at instanceof Element ? at : at.parentElement ?? main;
+    if (from.collapsed) {
+      if (main.contains(root)) root = main;
+      // The largest subtree around the caret that is not part of the main content.
+      else while (root.parentElement && !root.parentElement.contains(main)) root = root.parentElement;
+    }
+  }
   const seg = segmenter();
-  return collectBlocks(readingRoot()).flatMap((block) =>
+  const sentences = collectBlocks(root).flatMap((block) =>
     splitSentences(block.text, seg).map(({ from, to }) => ({
       // Same length as the source, so word offsets from the speech service still line up.
       text: block.text.slice(from, to).replace(/\s/g, " "),
@@ -105,6 +124,14 @@ export function extract(): Sentence[] {
       to,
     })),
   );
+  if (!from || from.collapsed) return sentences;
+  return sentences.filter((s) => {
+    const r = rangeOf(s);
+    return (
+      r.compareBoundaryPoints(Range.START_TO_END, from) > 0 &&
+      r.compareBoundaryPoints(Range.END_TO_START, from) < 0
+    );
+  });
 }
 
 function point(block: Block, offset: number): [Text, number] {
