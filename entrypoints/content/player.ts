@@ -32,6 +32,7 @@ button.jump:hover { background: #ffe14d; transform: scale(1.04); }
   div, button, button.jump { transition: none; }
 }
 span { min-width: 38px; text-align: center; font-variant-numeric: tabular-nums; }
+span.left { padding: 0 6px; opacity: .75; white-space: nowrap; }
 span.error { color: #ff8a80; min-width: 0; padding: 0 6px; }
 `;
 
@@ -85,6 +86,8 @@ export function createPlayer(actions: PlayerActions) {
   button("−", "Slower", () => actions.speed(-10));
   const speed = text();
   button("+", "Faster", () => actions.speed(10));
+  const left = text("left");
+  left.title = "Estimated time left";
   const error = text("error");
   button("✕", "Stop reading", actions.stop);
   shadow.append(bar);
@@ -148,7 +151,7 @@ export function createPlayer(actions: PlayerActions) {
       host.classList.add("out");
       leaving = setTimeout(() => host.remove(), 300); // after the slide-out
     },
-    update(state: { playing: boolean; rate: number; error?: string; away: boolean }) {
+    update(state: { playing: boolean; rate: number; error?: string; away: boolean; left: string }) {
       jump.classList.toggle("show", state.away);
       jump.inert = !state.away;
       if (state.playing !== wasPlaying) {
@@ -163,6 +166,7 @@ export function createPlayer(actions: PlayerActions) {
       main.setAttribute("aria-label", main.title);
       speed.textContent = `${(1 + state.rate / 100).toFixed(1)}×`;
       error.textContent = state.error ?? "";
+      left.textContent = state.error || !state.left ? "" : `${state.left} left`;
     },
   };
 }

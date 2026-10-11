@@ -26,6 +26,11 @@ export default defineContentScript({
     let shownWord = -1;
     /** Where the sentence being read is on the page. */
     let currentRange: Range | undefined;
+    /**
+     * Characters and seconds of speech heard so far, at 1×, for the time-left estimate. Measured
+     * rather than assumed: pace per character differs threefold between English and Japanese.
+     */
+    const heard = { chars: 0, seconds: 0, index: -1 };
 
     const sentenceMark = new Highlight();
     const wordMark = new Highlight();
@@ -45,7 +50,18 @@ export default defineContentScript({
         setSettings({ rate: Math.max(-50, Math.min(100, settings.rate + delta)) }),
     });
     const refresh = () =>
-      player.update({ playing, rate: settings.rate, error, away: !onScreen(currentRange) });
+      player.update({ playing, rate: settings.rate, error, away: !onScreen(currentRange), left: timeLeft() });
+
+    /** Rough time to read from the current sentence to the end of what is being read. */
+    function timeLeft(): string {
+      if (heard.seconds < 5) return ""; // one short clip is too noisy to go on
+      let chars = 0;
+      for (let i = index; i < sentences.length; i++) chars += sentences[i].text.length;
+      const seconds = (chars * heard.seconds) / heard.chars / (1 + settings.rate / 100);
+      const minutes = Math.round(seconds / 60);
+      if (minutes < 1) return `${Math.max(1, Math.round(seconds))} s`;
+      return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+    }
 
     function onScreen(range: Range | undefined): boolean {
       if (!range) return true;
@@ -115,6 +131,12 @@ export default defineContentScript({
           if (message.index !== index) showSentence(message.index);
           words = message.words;
           error = undefined;
+          // Each clip shows how fast this voice speaks this text.
+          if (heard.index !== index && words.at(-1)?.end) {
+            heard.index = index;
+            heard.chars += sentences[index].text.length;
+            heard.seconds += words.at(-1)!.end * (1 + settings.rate / 100);
+          }
           if (!anchor) requestAnimationFrame(tick);
           anchor = { time: message.time, at: performance.now() };
           break;
