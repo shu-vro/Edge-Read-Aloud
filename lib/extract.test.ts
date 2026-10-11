@@ -25,6 +25,33 @@ test("splitSentences: spans are trimmed, short ones merge, punctuation-only is d
   expect(splitSentences("", seg)).toEqual([]);
 });
 
+test("splitSentences: line breaks and abbreviations do not end a sentence", () => {
+  const seg = new Intl.Segmenter("en", { granularity: "sentence" });
+  const text = `This sentence was wrapped in the page source\nright in the middle. ${LONG_A} It was written by Dr. Smith, who is long enough.`;
+  expect(splitSentences(text, seg).map((s) => text.slice(s.from, s.to))).toEqual([
+    "This sentence was wrapped in the page source\nright in the middle.",
+    LONG_A,
+    "It was written by Dr. Smith, who is long enough.",
+  ]);
+});
+
+test("splitSentences: long sentences are cut at a clause, then a space, in any script", () => {
+  const seg = new Intl.Segmenter("en", { granularity: "sentence" });
+  const clause = "word ".repeat(40) + "end of clause, " + "more ".repeat(40) + "done.";
+  const parts = splitSentences(clause, seg).map((s) => clause.slice(s.from, s.to));
+  expect(parts[0].endsWith("clause,")).toBe(true);
+  expect(parts.join(" ")).toBe(clause);
+
+  const words = "word ".repeat(100).trim() + ".";
+  for (const s of splitSentences(words, seg)) expect(s.to - s.from).toBeLessThanOrEqual(300);
+  expect(splitSentences(words, seg).map((s) => words.slice(s.from, s.to)).join(" ")).toBe(words);
+
+  const zh = "这是一个很长的句子".repeat(30) + "，" + "后面还有更多的内容".repeat(10) + "。";
+  const zhParts = splitSentences(zh, new Intl.Segmenter("zh", { granularity: "sentence" }));
+  expect(zh.slice(zhParts[0].from, zhParts[0].to).endsWith("，")).toBe(true);
+  expect(zhParts.map((s) => zh.slice(s.from, s.to)).join("")).toBe(zh);
+});
+
 test("extract: one sentence per long sentence, text length equals source length", () => {
   const s = page(`<p>${LONG_A}\n${LONG_B}</p>`);
   expect(s.map((x) => x.text)).toEqual([LONG_A, LONG_B]);

@@ -15,6 +15,15 @@ const SKIP =
 
 /** Sentences shorter than this are read together with the next one, to save round trips. */
 const MIN_CHARS = 40;
+/**
+ * Longer sentences are cut at a clause boundary, so the first audio does not wait on a huge
+ * request. Cuts mid-sentence change the voice's intonation, so the limit is generous.
+ */
+const MAX_CHARS = 300;
+/** Punctuation that ends a clause, across scripts: Latin, Arabic, CJK, Devanagari, Ethiopic. */
+const CLAUSE = /[,;:\u060C\u061B\u3001\uFF0C\uFF1B\uFF1A\u0964\u1363\u1364\u2013\u2014)\]]/u;
+/** "Dr.", "Mr.", "J." look like sentence ends to the segmenter. */
+const ABBREVIATION = /(?:^|\s)(?:\p{L}|\p{Lu}\p{Ll}{1,2})\.$/u;
 
 type Block = { nodes: { node: Text; start: number }[]; text: string };
 
@@ -89,12 +98,37 @@ export function splitSentences(text: string, seg: Intl.Segmenter): { from: numbe
     }
     from = to;
   };
-  for (const s of seg.segment(text)) {
+  // Source line breaks inside a paragraph are not sentence ends, but the segmenter treats them
+  // as such. Same length, so its offsets still apply to `text`.
+  for (const s of seg.segment(text.replace(/\s/g, " "))) {
     const to = s.index + s.segment.length;
-    if (text.slice(from, to).trim().length >= MIN_CHARS) flush(to);
+    const piece = text.slice(from, to).trim();
+    if (piece.length >= MIN_CHARS && !ABBREVIATION.test(piece)) flush(to);
   }
   flush(text.length);
-  return spans;
+  return spans.flatMap((span) => limit(text, span));
+}
+
+/** Cuts a span longer than MAX_CHARS at its last clause punctuation, else its last space. */
+function limit(text: string, { from, to }: { from: number; to: number }): { from: number; to: number }[] {
+  const out: { from: number; to: number }[] = [];
+  while (to - from > MAX_CHARS) {
+    let cut = -1;
+    let space = -1;
+    for (let i = from + MAX_CHARS - 1; i > from + MIN_CHARS && cut < 0; i--) {
+      if (CLAUSE.test(text[i])) cut = i + 1;
+      else if (space < 0 && /\s/.test(text[i])) space = i;
+    }
+    // ponytail: hard cut when a script has neither (unpunctuated Thai, CJK); a word Segmenter
+    // would find a word boundary there.
+    if (cut < 0) cut = space > 0 ? space : from + MAX_CHARS;
+    if (/[\uDC00-\uDFFF]/.test(text[cut])) cut--; // keep surrogate pairs whole
+    const head = text.slice(from, cut);
+    out.push({ from, to: from + head.trimEnd().length });
+    from = cut + (text.slice(cut, to).length - text.slice(cut, to).trimStart().length);
+  }
+  out.push({ from, to });
+  return out;
 }
 
 /**
