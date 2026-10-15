@@ -8,7 +8,7 @@ this file covers how the code works and the constraints that are not obvious fro
 A Manifest V3 extension for Chromium browsers, built with [WXT](https://wxt.dev), that reads web
 pages aloud through Microsoft Edge's Read Aloud speech service and highlights the words as they
 are spoken. Plain TypeScript, no UI framework. One runtime dependency (`edge-tts-universal`), of
-which only the token generator and the voice list are used.
+which only the voice list is used.
 
 ## Commands
 
@@ -58,7 +58,9 @@ problem first.
   `declarativeNetRequest`. That needs the `wss://` host permission as well as `https://`.
 - The Edge version appears in two places that must agree: `GEC_VERSION` in `lib/tts.ts` and the
   `User-Agent` in `public/rules.json`. When synthesis starts failing with a refused connection,
-  this version (or the token scheme in `edge-tts-universal`) is the first thing to check.
+  this version (or the token scheme in `lib/gec.ts`) is the first thing to check. The token is
+  ported from rany2/edge-tts (`drm.py`), which tracks changes to the service first; its version
+  prefix (`2-` in `GEC_VERSION`) goes with the token scheme.
 - It queues clients that send bursts of requests, delaying responses by seconds. Prefetch is
   therefore two sentences ahead, one request at a time, started only after the current sentence
   has arrived. Do not parallelize it or deepen it.

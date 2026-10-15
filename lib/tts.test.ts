@@ -72,8 +72,8 @@ test("a request opens a socket with the Edge token, sends config then SSML, and 
   await synthesize("Hi", prosody, sink);
 
   const [socket] = FakeSocket.all;
-  expect(socket.url).toContain("Sec-MS-GEC=TOKEN");
-  expect(socket.url).toMatch(/Sec-MS-GEC-Version=1-\d+\./);
+  expect(socket.url).toMatch(/Sec-MS-GEC=[0-9A-F]{16}-[0-9A-F]{64}&/);
+  expect(socket.url).toMatch(/Sec-MS-GEC-Version=2-\d+\./);
   expect(socket.binaryType).toBe("arraybuffer");
   expect(socket.sent[0]).toContain("Path:speech.config");
   expect(socket.sent[0]).toContain('"wordBoundaryEnabled":"true"');
@@ -152,7 +152,7 @@ test("warm() opens one connection ahead and synthesize uses it", async () => {
 });
 
 test("GEC_VERSION agrees with the User-Agent in public/rules.json", () => {
-  const gec = readFileSync(new URL("./tts.ts", import.meta.url), "utf8").match(/GEC_VERSION = "1-([\d.]+)"/)![1];
+  const gec = readFileSync(new URL("./tts.ts", import.meta.url), "utf8").match(/GEC_VERSION = "2-([\d.]+)"/)![1];
   const rules = readFileSync(new URL("../public/rules.json", import.meta.url), "utf8");
   const major = gec.split(".")[0];
   expect(rules).toContain(`Chrome/${major}.0.0.0`);

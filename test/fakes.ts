@@ -37,6 +37,5 @@ mock.module("wxt/browser", () => ({
 }));
 
 mock.module("edge-tts-universal/browser", () => ({
-  DRM: { generateSecMsGec: async () => "TOKEN" },
   listVoices: () => (fakes.listVoicesCalls++, fakes.listVoices()),
 }));

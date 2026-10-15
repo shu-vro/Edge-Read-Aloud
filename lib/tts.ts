@@ -5,17 +5,18 @@
  * reused: the service accepts one request after another on the same connection.
  *
  * edge-tts-universal's browser client opens a socket per request, never settles when the
- * handshake is refused and polls for messages every 50 ms. Only its token generator is reused.
+ * handshake is refused and polls for messages every 50 ms. Its token generator is out of date
+ * too (see gec.ts).
  */
 
-import { DRM } from "edge-tts-universal/browser";
 import type { Boundary } from "./align";
+import { secMsGec } from "./gec";
 
 const ENDPOINT =
   "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1" +
   "?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 /** Must match the Edge version the token generator and public/rules.json claim to be. */
-const GEC_VERSION = "1-143.0.3650.75";
+const GEC_VERSION = "2-143.0.3650.75";
 const CONNECT_TIMEOUT_MS = 8000;
 
 const CONFIG =
@@ -49,7 +50,7 @@ export type Sink = { audio(chunk: ArrayBuffer): void; boundary(boundary: Boundar
 const idle = new Set<WebSocket>();
 
 async function open(): Promise<WebSocket> {
-  const url = `${ENDPOINT}&Sec-MS-GEC=${await DRM.generateSecMsGec()}&Sec-MS-GEC-Version=${GEC_VERSION}&ConnectionId=${id()}`;
+  const url = `${ENDPOINT}&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=${GEC_VERSION}&ConnectionId=${id()}`;
   const socket = new WebSocket(url);
   socket.binaryType = "arraybuffer";
   await new Promise<void>((resolve, reject) => {
