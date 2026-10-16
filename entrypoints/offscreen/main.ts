@@ -27,6 +27,9 @@ const CACHE_SIZE = 40;
  * close to a second of silence, so the clip's own end is not used.
  */
 const SENTENCE_GAP = 0.35;
+/** Tries per sentence. The wait before each retry doubles, so a throttling service is not pushed harder. */
+const ATTEMPTS = 4;
+const RETRY_DELAY_MS = 500;
 
 type Clip = {
   buffer: AudioBuffer;
@@ -62,11 +65,21 @@ const signed = (n: number, unit: string) => `${n >= 0 ? "+" : ""}${n}${unit}`;
 async function make(text: string, { voice, rate, pitch, volume }: Settings): Promise<Clip> {
   const chunks: ArrayBuffer[] = [];
   const boundaries: Boundary[] = [];
-  await synthesize(
-    text,
-    { voice, rate: signed(rate, "%"), pitch: signed(pitch, "Hz"), volume: signed(volume, "%") },
-    { audio: (chunk) => chunks.push(chunk), boundary: (boundary) => boundaries.push(boundary) },
-  );
+  const prosody = { voice, rate: signed(rate, "%"), pitch: signed(pitch, "Hz"), volume: signed(volume, "%") };
+  for (let attempt = 1; ; attempt++) {
+    // A failed attempt may have delivered part of the sentence: start over clean.
+    chunks.length = boundaries.length = 0;
+    try {
+      await synthesize(text, prosody, {
+        audio: (chunk) => chunks.push(chunk),
+        boundary: (boundary) => boundaries.push(boundary),
+      });
+      break;
+    } catch (error) {
+      if (attempt >= ATTEMPTS) throw error;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * 2 ** (attempt - 1)));
+    }
+  }
   const buffer = await context.decodeAudioData(await new Blob(chunks).arrayBuffer());
   const words = align(text, boundaries);
   const last = words.at(-1);

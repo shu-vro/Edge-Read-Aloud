@@ -66,7 +66,8 @@ problem first.
   has arrived. Do not parallelize it or deepen it.
 - A handshake costs about twice what synthesizing a sentence does. `lib/tts.ts` keeps sockets
   open and sends consecutive requests on them. A reused socket that has gone stale is retried
-  once on a fresh one.
+  once on a fresh one. A sentence that still fails is retried by the offscreen document with
+  exponential backoff (0.5 s, 1 s, 2 s) before the error reaches the page.
 - This is an undocumented endpoint. Keep load light and do not add features that would hammer it
   (bulk export, whole-page pre-synthesis).
 
